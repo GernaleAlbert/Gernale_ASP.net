@@ -1,0 +1,161 @@
+﻿@model GERNALE_WEB_APP.Core.Model.Section
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Section</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd class = "col-sm-10">
+            <div id="section-id">@Html.DisplayFor(model => model.Id)</div>
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+    </dl>
+</div>
+<div>
+    @Html.ActionLink("Edit", "Edit", new { id = Model.Id }) |
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<div class="modal fade" id="modal-assign-student">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Assign Students</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light" id="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btn-save">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <div class="d-flex justify-content-between">
+        <h4>List of Students</h4>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-assign-student" id="btn-assign">Assign Student</button>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Student Number
+                </th>
+                <th>
+                    Name
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var studentId in Model.Students)
+            {
+                var student = MyDatabase.students.Find(x => x.Id == studentId);
+                <tr>
+                    <td>
+                        @student.StudentNumber
+                    </td>
+                    <td>
+                        @student.FirstName @student.LastName
+                    </td>
+                    <td>
+                        @Html.ActionLink("Remove", "Remove", new { id = Model.Id, studentId = studentId }, new { @class = "btn-remove"})
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    $(".btn-remove").on('click', function(event) {
+        event.preventDefault();
+        if (confirm('Are you sure you want to remove this student?')) {
+            $.ajax({
+                type: "delete",
+                url: $(this).attr('href'),
+                success : function(response) {
+                    alert(response);
+                    location.reload();
+                },
+                error: function(error){
+                    alert(error.responseText);
+                }
+            });
+        }
+    });
+
+    $("#btn-assign").click(function(){
+        $("#modal-body").html("");
+        $.ajax({
+            type: "get",
+            url: "/Student/GetFilteredList/" + $("#section-id").text(),
+            success: function(response) {
+                var list = JSON.parse(JSON.stringify(response));
+                for(var i = 0; i < list.length; i++) {
+                    var data = list[i];
+                    $("#modal-body").append(
+                        '<div class=" d-flex align-items-center bg-white px-2 py-0 mb-2">\n' +
+                            '<input class="form-check-input me-2" type="checkbox" value='+data.id+' id="chb-student">' +
+                            '<div>' +
+                                '<p>' +
+                                        '<div class="h6">' + data.firstName + ' ' + data.lastName + '</div>' +
+                                        '<span class="text-body-secondary">' + data.studentNumber + '</span>' +
+                                    '</p>' +
+                            '</div>' +
+                        '</div>'
+                    );
+                }
+            },
+            error: function(error) {
+                alert(error.responseText);
+            }
+        });
+    });
+
+    $("#btn-save").click(function(){
+        var studentIds = [];
+        $("input").each(function(){
+            var checkbox = $(this);
+            if (checkbox.is(":checked")) {
+                studentIds.push({
+                    id: parseInt(checkbox.val())
+                });
+            }
+        });
+
+        if (studentIds.length == 0) {
+            alert("No students selected.")
+        } else {
+            $.ajax({
+                type: "post",
+                url: "/Section/Assign/" + $("#section-id").text(),
+                contentType: "application/json",
+                data: JSON.stringify(studentIds),
+                success: function(response) {
+                    alert(response);
+                    location.reload();
+                },
+                error: function(error) {
+                    console.log(error.responseText);
+                }
+            });
+        }
+    });
+</script>
